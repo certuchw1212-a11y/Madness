@@ -1,8 +1,14 @@
 :root {
+  --bg: #08080a;
   --card-w: 140px;
   --card-h: 190px;
   --radius: 480px;
   --ring-tilt: 18deg;
+  --text: #f2f0ea;
+  --text-dim: #9a978f;
+  --accent: #e0532c;
+  --panel-bg: rgba(255, 255, 255, 0.05);
+  --panel-border: rgba(255, 255, 255, 0.09);
 }
 
 * {
@@ -13,42 +19,106 @@ html,
 body {
   height: 100%;
   margin: 0;
-  background: #ffffff;
+  background: var(--bg);
   overflow: hidden;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--text);
 }
 
-.gallery {
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+.scene {
   position: relative;
   width: 100%;
   height: 100vh;
 }
 
-/* Preview panel, top-left, shown on card hover */
+/* Ambient layers: vignette, film grain, a soft ember glow under the ring */
+.vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(ellipse at 50% 50%, transparent 35%, rgba(0, 0, 0, 0.75) 100%);
+}
+
+.grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+
+.floor-glow {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 900px;
+  height: 260px;
+  margin: -130px 0 0 -450px;
+  background: radial-gradient(ellipse, rgba(224, 83, 44, 0.16), transparent 70%);
+  filter: blur(40px);
+  pointer-events: none;
+  z-index: 0;
+  animation: glow-pulse 7s ease-in-out infinite;
+}
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
+
+.hint {
+  position: absolute;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* Hover preview, top-left */
 .preview {
   position: absolute;
   top: 24px;
   left: 24px;
-  width: 150px;
+  width: 160px;
   z-index: 10;
+  padding: 10px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  pointer-events: none;
 }
 
 .preview__image {
   display: block;
-  width: 150px;
+  width: 100%;
   height: 100px;
   object-fit: cover;
-  border-radius: 4px;
-  background: #eee;
+  border-radius: 6px;
+  background: #111;
 }
 
 .preview__title {
   margin: 8px 0 0;
-  max-width: 150px;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
-  line-height: 1.3;
-  color: #111;
+  line-height: 1.35;
+  color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -58,12 +128,24 @@ body {
 
 /* 3D stage */
 .stage {
+  position: relative;
+  z-index: 3;
   width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   perspective: 1800px;
+  cursor: grab;
+  touch-action: pan-y;
+}
+
+.stage.grabbing {
+  cursor: grabbing;
+}
+
+.float {
+  will-change: transform;
 }
 
 .ring {
@@ -71,13 +153,16 @@ body {
   width: var(--card-w);
   height: var(--card-h);
   transform-style: preserve-3d;
-  /* pushing back by --radius re-centers the cylinder of cards on the
-     stage's origin, instead of bulging the front card into the camera */
-  transform: rotateX(var(--ring-tilt)) translateZ(calc(var(--radius) * -1));
+  will-change: transform;
 }
 
-/* Positions each card around the ring; hover effects live on the child .card
-   so translateZ on hover moves it outward along its own radial axis. */
+.ring-spin {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
 .card-slot {
   position: absolute;
   top: 0;
@@ -90,10 +175,12 @@ body {
 .card {
   width: 100%;
   height: 100%;
-  border-radius: 6px;
+  border-radius: 8px;
   overflow: hidden;
   background: #111;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.07);
   transition: transform 0.35s ease, filter 0.35s ease, box-shadow 0.35s ease;
   cursor: pointer;
 }
@@ -108,6 +195,137 @@ body {
 
 .card-slot:hover .card {
   transform: translateZ(34px) scale(1.06);
-  filter: brightness(1.04);
-  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.3);
+  filter: brightness(1.08);
+  box-shadow:
+    0 30px 60px rgba(0, 0, 0, 0.65),
+    0 0 0 1px rgba(255, 255, 255, 0.16),
+    0 0 40px rgba(255, 255, 255, 0.08);
+}
+
+/* Detail modal */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal[hidden] {
+  display: none;
+}
+
+.modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 4, 5, 0.78);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.modal__panel {
+  position: relative;
+  width: min(760px, 90vw);
+  max-height: 85vh;
+  overflow: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  background: #111114;
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  transform: scale(0.96) translateY(10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.modal.is-open .modal__backdrop {
+  opacity: 1;
+}
+
+.modal.is-open .modal__panel {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+.modal__image {
+  width: 100%;
+  height: 100%;
+  min-height: 260px;
+  object-fit: cover;
+  display: block;
+}
+
+.modal__body {
+  padding: 32px 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+}
+
+.modal__eyebrow {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+}
+
+.modal__title {
+  margin: 0;
+  font-family: ui-serif, Georgia, "Times New Roman", serif;
+  font-size: 26px;
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--text);
+  text-wrap: balance;
+}
+
+.modal__desc {
+  margin: 4px 0 0;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--text-dim);
+  max-width: 42ch;
+}
+
+.modal__close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--panel-border);
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--text);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.modal__close:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.modal__close:focus-visible,
+.card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .modal__panel {
+    grid-template-columns: 1fr;
+  }
+  .modal__image {
+    min-height: 200px;
+  }
 }
