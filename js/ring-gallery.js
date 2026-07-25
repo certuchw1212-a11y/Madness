@@ -62,7 +62,7 @@ const ITEMS = [
   },
 ];
 
-const CARD_COUNT = 32; // how many card slots make up the full ring
+const CARD_COUNT = 24; // how many card slots make up the full ring — fewer cards means a smaller radius
 const CARD_WIDTH = 140; // must match --card-w in style.css
 const OVERLAP = 0.78; // <1 packs cards closer together (denser fan look)
 
@@ -77,8 +77,9 @@ const AUTOROTATE_SPEED = 0.006; // deg per ms (~2.2deg/s)
 const IDLE_DELAY = 1400; // ms of no interaction before auto-rotate resumes
 const MOMENTUM_FRICTION = 0.94; // per ~16.7ms frame
 
-const MAX_DEPTH_BLUR = 6; // px of blur applied to the far side of the ring
+const MAX_DEPTH_BLUR = 7; // px of blur applied to the far side of the ring
 const MAX_DEPTH_DIM = 0.3; // how much dimmer the far side gets (0-1)
+const FOCUS_FACING = 0.75; // cards within ~41deg of dead-center stay perfectly sharp
 const DEG2RAD = Math.PI / 180;
 const HOVER_POP = 34; // px a hovered card pushes toward the camera
 
@@ -100,6 +101,24 @@ function initRingGallery() {
   const modalEyebrow = document.getElementById("modalEyebrow");
   const modalTitle = document.getElementById("modalTitle");
   const modalDesc = document.getElementById("modalDesc");
+
+  // Marquee light frame around the modal — built once, content changes per card.
+  const BULB_ROW_COUNT = 11;
+  const BULB_COL_COUNT = 6;
+  function fillBulbs(id, count) {
+    const el = document.getElementById(id);
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < count; i++) {
+      const bulb = document.createElement("span");
+      bulb.className = "bulb";
+      frag.appendChild(bulb);
+    }
+    el.appendChild(frag);
+  }
+  fillBulbs("bulbsTop", BULB_ROW_COUNT);
+  fillBulbs("bulbsBottom", BULB_ROW_COUNT);
+  fillBulbs("bulbsLeft", BULB_COL_COUNT);
+  fillBulbs("bulbsRight", BULB_COL_COUNT);
 
   const angleStep = 360 / CARD_COUNT;
   const radius = Math.round(
@@ -300,7 +319,12 @@ function initRingGallery() {
     for (let i = 0; i < slots.length; i++) {
       const { el, baseAngle } = slots[i];
       const facing = Math.cos((baseAngle + rotation) * DEG2RAD);
-      const depth = (1 - facing) / 2; // 0 = front, 1 = back
+      // A small cluster of cards dead ahead (facing >= FOCUS_FACING) stays
+      // perfectly sharp — like a lens focus plane — then blur ramps in for
+      // everything rotating past it, all the way to the back of the ring.
+      const depth = facing >= FOCUS_FACING
+        ? 0
+        : (FOCUS_FACING - facing) / (FOCUS_FACING + 1);
       const blur = depth * MAX_DEPTH_BLUR;
       const brightness = 1 - depth * MAX_DEPTH_DIM;
       el.style.filter = `blur(${blur.toFixed(2)}px) brightness(${brightness.toFixed(2)})`;

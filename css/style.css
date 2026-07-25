@@ -230,17 +230,19 @@ body {
   transition: opacity 0.3s ease;
 }
 
-.modal__panel {
+/* Marquee frame: a cinema light-up sign around the detail panel */
+.marquee {
   position: relative;
-  width: min(760px, 90vw);
-  max-height: 85vh;
-  overflow: auto;
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-  background: #111114;
-  border: 1px solid var(--panel-border);
-  border-radius: 16px;
-  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6);
+  width: min(820px, 92vw);
+  max-height: 90vh;
+  padding: 34px 30px;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255, 180, 90, 0.08), transparent 60%),
+    linear-gradient(155deg, #2b1c10, #16100a 55%, #0d0906);
+  border-radius: 14px;
+  box-shadow:
+    0 50px 120px rgba(0, 0, 0, 0.7),
+    inset 0 0 0 1px rgba(255, 200, 130, 0.12);
   opacity: 0;
   transform: scale(0.96) translateY(10px);
   transition: opacity 0.3s ease, transform 0.3s ease;
@@ -250,9 +252,69 @@ body {
   opacity: 1;
 }
 
-.modal.is-open .modal__panel {
+.modal.is-open .marquee {
   opacity: 1;
   transform: scale(1) translateY(0);
+}
+
+.marquee__bulbs {
+  position: absolute;
+  display: flex;
+  pointer-events: none;
+}
+
+.marquee__bulbs--top,
+.marquee__bulbs--bottom {
+  left: 30px;
+  right: 30px;
+  justify-content: space-between;
+}
+
+.marquee__bulbs--top {
+  top: 12px;
+}
+
+.marquee__bulbs--bottom {
+  bottom: 12px;
+}
+
+.marquee__bulbs--left,
+.marquee__bulbs--right {
+  top: 34px;
+  bottom: 34px;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.marquee__bulbs--left {
+  left: 12px;
+}
+
+.marquee__bulbs--right {
+  right: 12px;
+}
+
+.marquee__bulbs .bulb {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff8e0 0%, #ffd27a 40%, #d98a1f 70%, #7a4a12 100%);
+  box-shadow:
+    0 0 6px 2px rgba(255, 185, 90, 0.85),
+    0 0 16px 6px rgba(255, 140, 30, 0.4);
+}
+
+.modal__panel {
+  position: relative;
+  width: 100%;
+  max-height: calc(90vh - 68px);
+  overflow: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  background: #0c0c0e;
+  border: 1px solid rgba(255, 200, 130, 0.18);
+  border-radius: 8px;
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.5);
 }
 
 .modal__image {
