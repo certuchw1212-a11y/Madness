@@ -34,15 +34,26 @@
         <div class="marquee__bulbs marquee__bulbs--bottom" id="bulbsBottom"></div>
         <div class="marquee__bulbs marquee__bulbs--left" id="bulbsLeft"></div>
         <div class="marquee__bulbs marquee__bulbs--right" id="bulbsRight"></div>
+        <span class="bulb marquee__corner marquee__corner--tl"></span>
+        <span class="bulb marquee__corner marquee__corner--tr"></span>
+        <span class="bulb marquee__corner marquee__corner--bl"></span>
+        <span class="bulb marquee__corner marquee__corner--br"></span>
 
-        <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-          <img class="modal__image" id="modalImage" alt="" />
-          <div class="modal__body">
-            <p class="modal__eyebrow" id="modalEyebrow"></p>
-            <h2 class="modal__title" id="modalTitle"></h2>
-            <p class="modal__desc" id="modalDesc"></p>
+        <div class="marquee__bezel">
+          <span class="marquee__rivet marquee__rivet--tl"></span>
+          <span class="marquee__rivet marquee__rivet--tr"></span>
+          <span class="marquee__rivet marquee__rivet--bl"></span>
+          <span class="marquee__rivet marquee__rivet--br"></span>
+
+          <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+            <img class="modal__image" id="modalImage" alt="" />
+            <div class="modal__body">
+              <p class="modal__eyebrow" id="modalEyebrow"></p>
+              <h2 class="modal__title" id="modalTitle"></h2>
+              <p class="modal__desc" id="modalDesc"></p>
+            </div>
+            <button class="modal__close" id="modalClose" aria-label="Cerrar">&times;</button>
           </div>
-          <button class="modal__close" id="modalClose" aria-label="Cerrar">&times;</button>
         </div>
       </div>
     </div>

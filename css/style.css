@@ -230,18 +230,25 @@ body {
   transition: opacity 0.3s ease;
 }
 
-/* Marquee frame: a cinema light-up sign around the detail panel */
+/* Marquee frame: a cinema light-up sign around the detail panel.
+   Three layers: (1) .marquee — the brushed-metal shell the bulbs sit on,
+   (2) .marquee__bezel — a recessed groove that catches light like stamped
+   metal, (3) .modal__panel — the dark screen inside. */
 .marquee {
   position: relative;
   width: min(820px, 92vw);
   max-height: 90vh;
-  padding: 34px 30px;
+  padding: 32px 28px;
   background:
-    radial-gradient(ellipse at 50% 0%, rgba(255, 180, 90, 0.08), transparent 60%),
-    linear-gradient(155deg, #2b1c10, #16100a 55%, #0d0906);
-  border-radius: 14px;
+    radial-gradient(ellipse at 50% 0%, rgba(255, 180, 90, 0.12), transparent 55%),
+    linear-gradient(160deg, rgba(255, 255, 255, 0.07), transparent 22%),
+    repeating-linear-gradient(128deg, rgba(255, 255, 255, 0.025) 0 2px, transparent 2px 6px),
+    linear-gradient(155deg, #3c2a15, #1c130a 55%, #0d0906);
+  border-radius: 12px;
   box-shadow:
     0 50px 120px rgba(0, 0, 0, 0.7),
+    inset 0 2px 2px rgba(255, 255, 255, 0.1),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.55),
     inset 0 0 0 1px rgba(255, 200, 130, 0.12);
   opacity: 0;
   transform: scale(0.96) translateY(10px);
@@ -271,49 +278,116 @@ body {
 }
 
 .marquee__bulbs--top {
-  top: 12px;
+  top: 11px;
 }
 
 .marquee__bulbs--bottom {
-  bottom: 12px;
+  bottom: 11px;
 }
 
 .marquee__bulbs--left,
 .marquee__bulbs--right {
-  top: 34px;
-  bottom: 34px;
+  top: 32px;
+  bottom: 32px;
   flex-direction: column;
   justify-content: space-between;
 }
 
 .marquee__bulbs--left {
-  left: 12px;
+  left: 11px;
 }
 
 .marquee__bulbs--right {
-  right: 12px;
+  right: 11px;
 }
 
-.marquee__bulbs .bulb {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #fff8e0 0%, #ffd27a 40%, #d98a1f 70%, #7a4a12 100%);
-  box-shadow:
-    0 0 6px 2px rgba(255, 185, 90, 0.85),
-    0 0 16px 6px rgba(255, 140, 30, 0.4);
+.marquee__corner {
+  position: absolute;
+  z-index: 1;
 }
+
+.marquee__corner--tl {
+  top: 11px;
+  left: 11px;
+}
+
+.marquee__corner--tr {
+  top: 11px;
+  right: 11px;
+}
+
+.marquee__corner--bl {
+  bottom: 11px;
+  left: 11px;
+}
+
+.marquee__corner--br {
+  bottom: 11px;
+  right: 11px;
+}
+
+/* Each bulb is a little glass dome: a bright hotspot, a warm glass body,
+   a dark rim where it meets the socket, and a soft two-layer bloom. */
+.bulb {
+  display: block;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 28%, #fffdf2 0%, #ffe19a 22%, #ffb64a 48%, #d9791c 72%, #5c3410 100%);
+  box-shadow:
+    inset -1px -1px 2px rgba(0, 0, 0, 0.55),
+    inset 1px 1px 1px rgba(255, 255, 255, 0.55),
+    0 0 6px 2px rgba(255, 180, 70, 0.9),
+    0 0 18px 7px rgba(255, 130, 20, 0.4);
+}
+
+@keyframes bulb-flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.82; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .bulb {
+    animation: bulb-flicker 2.6s ease-in-out infinite;
+    animation-delay: var(--flicker-delay, 0s);
+  }
+}
+
+/* Stamped-metal bezel between the bulb frame and the dark screen, plus the
+   four corner rivets that hold it — the detail that sells "real object". */
+.marquee__bezel {
+  position: relative;
+  padding: 9px;
+  border-radius: 8px;
+  background: linear-gradient(155deg, #4d3419 0%, #2a1c0f 45%, #17100a 100%);
+  box-shadow:
+    inset 0 2px 3px rgba(255, 255, 255, 0.18),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.65);
+}
+
+.marquee__rivet {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #f0d9a8, #96702c 55%, #3a2510 100%);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.6), inset 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+.marquee__rivet--tl { top: 4px; left: 4px; }
+.marquee__rivet--tr { top: 4px; right: 4px; }
+.marquee__rivet--bl { bottom: 4px; left: 4px; }
+.marquee__rivet--br { bottom: 4px; right: 4px; }
 
 .modal__panel {
   position: relative;
   width: 100%;
-  max-height: calc(90vh - 68px);
+  max-height: calc(90vh - 86px);
   overflow: auto;
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
   background: #0c0c0e;
-  border: 1px solid rgba(255, 200, 130, 0.18);
-  border-radius: 8px;
+  border-radius: 5px;
   box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.5);
 }
 

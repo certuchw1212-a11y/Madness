@@ -120,6 +120,12 @@ function initRingGallery() {
   fillBulbs("bulbsLeft", BULB_COL_COUNT);
   fillBulbs("bulbsRight", BULB_COL_COUNT);
 
+  // Stagger each bulb's flicker so the sign reads as individually-wired
+  // bulbs rather than one uniform pulse — including the static corner ones.
+  document.querySelectorAll(".bulb").forEach((bulb) => {
+    bulb.style.setProperty("--flicker-delay", `${(Math.random() * -3).toFixed(2)}s`);
+  });
+
   const angleStep = 360 / CARD_COUNT;
   const radius = Math.round(
     (CARD_WIDTH / 2 / Math.tan(Math.PI / CARD_COUNT)) * (1 / OVERLAP)
