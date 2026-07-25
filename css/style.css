@@ -170,6 +170,7 @@ body {
   width: var(--card-w);
   height: var(--card-h);
   transform-style: preserve-3d;
+  will-change: filter;
 }
 
 .card {
@@ -180,7 +181,8 @@ body {
   background: #111;
   box-shadow:
     0 18px 40px rgba(0, 0, 0, 0.55),
-    0 0 0 1px rgba(255, 255, 255, 0.07);
+    0 0 0 1px rgba(255, 255, 255, 0.13),
+    0 0 20px rgba(255, 255, 255, 0.05);
   transition: transform 0.35s ease, filter 0.35s ease, box-shadow 0.35s ease;
   cursor: pointer;
 }
@@ -194,8 +196,10 @@ body {
 }
 
 .card-slot:hover .card {
-  transform: translateZ(34px) scale(1.06);
-  filter: brightness(1.08);
+  /* the toward-camera "pop" is done via the slot's own translateZ in JS,
+     not here — filter/transform on .card-slot forces transform-style:flat
+     on its children, which would silently cancel a translateZ set here */
+  transform: scale(1.06);
   box-shadow:
     0 30px 60px rgba(0, 0, 0, 0.65),
     0 0 0 1px rgba(255, 255, 255, 0.16),

@@ -77,6 +77,11 @@ const AUTOROTATE_SPEED = 0.006; // deg per ms (~2.2deg/s)
 const IDLE_DELAY = 1400; // ms of no interaction before auto-rotate resumes
 const MOMENTUM_FRICTION = 0.94; // per ~16.7ms frame
 
+const MAX_DEPTH_BLUR = 6; // px of blur applied to the far side of the ring
+const MAX_DEPTH_DIM = 0.3; // how much dimmer the far side gets (0-1)
+const DEG2RAD = Math.PI / 180;
+const HOVER_POP = 34; // px a hovered card pushes toward the camera
+
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 function initRingGallery() {
@@ -102,13 +107,16 @@ function initRingGallery() {
   );
 
   const fragment = document.createDocumentFragment();
+  const slots = []; // { el, baseAngle } — used each frame to drive depth-of-field blur
 
   for (let i = 0; i < CARD_COUNT; i++) {
     const data = ITEMS[i % ITEMS.length];
+    const baseAngle = angleStep * i;
 
     const slot = document.createElement("div");
     slot.className = "card-slot";
-    slot.style.transform = `rotateY(${angleStep * i}deg) translateZ(${radius}px)`;
+    slot.style.transform = `rotateY(${baseAngle}deg) translateZ(${radius}px)`;
+    slots.push({ el: slot, baseAngle });
 
     const card = document.createElement("div");
     card.className = "card";
@@ -127,8 +135,12 @@ function initRingGallery() {
     slot.addEventListener("mouseenter", () => {
       showPreview(data);
       lastInteraction = performance.now();
+      slot.style.transform = `rotateY(${baseAngle}deg) translateZ(${radius + HOVER_POP}px)`;
     });
-    slot.addEventListener("mouseleave", hidePreview);
+    slot.addEventListener("mouseleave", () => {
+      hidePreview();
+      slot.style.transform = `rotateY(${baseAngle}deg) translateZ(${radius}px)`;
+    });
     slot.addEventListener("click", () => {
       if (wasDrag) return;
       openModal(data);
@@ -275,9 +287,23 @@ function initRingGallery() {
 
       const bob = Math.sin((now % BOB_PERIOD) / BOB_PERIOD * Math.PI * 2) * BOB_AMPLITUDE;
       const parX = (0.5 - mouseNormX) * PARALLAX_X;
-      floatEl.style.transform = `translate(${parX}px, ${bob}px)`;
+      floatEl.style.transform = `translate(${parX}px, ${recenterY + bob}px)`;
     } else {
       ring.style.transform = `rotateX(${BASE_TILT}deg) translateZ(${-radius}px)`;
+      floatEl.style.transform = `translateY(${recenterY}px)`;
+    }
+
+    // Cinematic depth of field: cards facing the camera stay sharp, cards
+    // rotating toward the far side of the ring blur and dim progressively —
+    // this also keeps the *full* ring legible against the black background,
+    // since even the darkest cards keep their rim light and soft silhouette.
+    for (let i = 0; i < slots.length; i++) {
+      const { el, baseAngle } = slots[i];
+      const facing = Math.cos((baseAngle + rotation) * DEG2RAD);
+      const depth = (1 - facing) / 2; // 0 = front, 1 = back
+      const blur = depth * MAX_DEPTH_BLUR;
+      const brightness = 1 - depth * MAX_DEPTH_DIM;
+      el.style.filter = `blur(${blur.toFixed(2)}px) brightness(${brightness.toFixed(2)})`;
     }
 
     requestAnimationFrame(tick);
@@ -285,6 +311,18 @@ function initRingGallery() {
 
   ring.style.transform = `rotateX(${BASE_TILT}deg) translateZ(${-radius}px)`;
   setSpin(rotation);
+
+  // The flexbox centers the ring's *untransformed* box, not the perspective
+  // projection of the full 360deg cylinder — near cards blow up and far cards
+  // shrink asymmetrically, so the visual oval doesn't sit on that center.
+  // Measure the front and back card slots once and shift the scene so the
+  // full closed oval (not just its front arc) lands in the viewport.
+  const frontRect = slots[0].el.getBoundingClientRect();
+  const backRect = slots[Math.round(CARD_COUNT / 2)].el.getBoundingClientRect();
+  const ovalMidY = (frontRect.top + frontRect.bottom + backRect.top + backRect.bottom) / 4;
+  const recenterY = window.innerHeight / 2 - ovalMidY;
+  floatEl.style.transform = `translateY(${recenterY}px)`;
+
   requestAnimationFrame(tick);
 }
 
