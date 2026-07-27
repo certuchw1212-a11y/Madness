@@ -130,23 +130,72 @@ export default function RingGallery({
         []
     )
 
+    // ---- Responsive: measure the component's own container instead of the
+    // window. This is what makes it adapt on mobile/tablet *and* whenever
+    // it's embedded in a narrower column on desktop — same mechanism either
+    // way, rather than relying on device-specific breakpoints.
+    const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
+    useEffect(() => {
+        const el = sceneRef.current
+        if (!el || typeof ResizeObserver === "undefined") return
+        const ro = new ResizeObserver((entries) => {
+            const box = entries[0]?.contentRect
+            if (box) setContainerSize({ width: box.width, height: box.height })
+        })
+        ro.observe(el)
+        return () => ro.disconnect()
+    }, [])
+
+    // Hover/pop-on-hover only makes sense on devices that actually have a
+    // hovering pointer — on touch, mouseenter/mouseleave fire inconsistently
+    // on tap and can leave a card stuck "popped". Tapping still opens the
+    // modal either way via onClick.
+    const [hoverCapable, setHoverCapable] = useState(false)
+    useEffect(() => {
+        setHoverCapable(
+            typeof window !== "undefined" &&
+                window.matchMedia?.("(hover: hover) and (pointer: fine)").matches
+        )
+    }, [])
+
+    // Values in the property panel are the "designed at" desktop size; scale
+    // them down together as the container shrinks so the ring, its 3D depth,
+    // and the modal all stay proportional instead of overflowing or looking
+    // flat on a phone-width container.
+    const REFERENCE_WIDTH = 1100
+    const scale =
+        containerSize.width > 0
+            ? Math.min(1, Math.max(0.42, containerSize.width / REFERENCE_WIDTH))
+            : 1
+    const isNarrow = containerSize.width > 0 && containerSize.width < 640
+
+    const effCardWidth = cardWidth * scale
+    const effCardHeight = cardHeight * scale
+    const effPerspective = PERSPECTIVE * scale
+
+    // Denser bulb rows look cramped once the marquee itself has shrunk well
+    // below its designed size, so thin them out on narrow containers.
+    const bulbRowCount = isNarrow ? 7 : BULB_ROW_COUNT
+    const bulbColCount = isNarrow ? 4 : BULB_COL_COUNT
+
     // Stagger each bulb's flicker so the sign reads as individually-wired
     // bulbs rather than one uniform pulse.
     const bulbDelays = useMemo(() => {
         const make = (n: number) =>
             Array.from({ length: n }, () => (Math.random() * -3).toFixed(2) + "s")
         return {
-            top: make(BULB_ROW_COUNT),
-            bottom: make(BULB_ROW_COUNT),
-            left: make(BULB_COL_COUNT),
-            right: make(BULB_COL_COUNT),
+            top: make(bulbRowCount),
+            bottom: make(bulbRowCount),
+            left: make(bulbColCount),
+            right: make(bulbColCount),
             corners: make(4),
         }
-    }, [])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [bulbRowCount, bulbColCount])
 
     const angleStep = 360 / cardCount
     const radius = Math.round(
-        (cardWidth / 2 / Math.tan(Math.PI / cardCount)) * (1 / overlap) * radiusScale
+        (effCardWidth / 2 / Math.tan(Math.PI / cardCount)) * (1 / overlap) * radiusScale
     )
 
     function slotTransform(baseAngle: number, z: number) {
@@ -323,7 +372,18 @@ export default function RingGallery({
             window.removeEventListener("keydown", onKeyDown)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [cardCount, cardWidth, overlap, radiusScale, tilt, autoRotate, reduceMotion])
+    }, [
+        cardCount,
+        effCardWidth,
+        effPerspective,
+        overlap,
+        radiusScale,
+        tilt,
+        autoRotate,
+        reduceMotion,
+        containerSize.width,
+        containerSize.height,
+    ])
 
     // Tracks drag-vs-click per pointer session; read by each slot's onClick.
     const wasDragRef = useRef(false)
@@ -351,6 +411,7 @@ export default function RingGallery({
     return (
         <div
             ref={sceneRef}
+            className={isNarrow ? "rg-narrow" : undefined}
             style={{
                 position: "relative",
                 width: "100%",
@@ -453,10 +514,28 @@ export default function RingGallery({
                     background:rgba(0,0,0,.35); color:inherit; font-size:18px; line-height:1; cursor:pointer; }
                 .rg-close:hover { background:rgba(255,255,255,.1); }
                 .rg-close:focus-visible { outline:2px solid ${accentColor}; outline-offset:2px; }
+                /* .rg-narrow is driven by measuring this component's own
+                   container (see containerSize/isNarrow in the component),
+                   not the browser viewport — it also applies correctly when
+                   this is embedded in a narrow column on a wide screen. The
+                   max-width fallback below only covers the moment before
+                   that first measurement lands. */
                 @media (max-width: 640px) {
                     .rg-panel { grid-template-columns:1fr; }
-                    .rg-panel img { min-height:200px; }
+                    .rg-panel img { min-height:180px; }
                 }
+                .rg-narrow .rg-panel { grid-template-columns:1fr; }
+                .rg-narrow .rg-panel img { min-height:38vh; }
+                .rg-narrow .rg-panel-body { padding:20px 18px; gap:6px; }
+                .rg-narrow .rg-title { font-size:20px; }
+                .rg-narrow .rg-desc { font-size:13.5px; }
+                .rg-narrow .rg-marquee { padding:22px 16px; border-radius:10px; width:94%; max-height:94%; }
+                .rg-narrow .rg-bezel { padding:6px; }
+                .rg-narrow .rg-bulbs--top, .rg-narrow .rg-bulbs--bottom { left:18px; right:18px; }
+                .rg-narrow .rg-bulbs--left, .rg-narrow .rg-bulbs--right { top:20px; bottom:20px; }
+                .rg-narrow .rg-bulb { width:8px; height:8px; }
+                .rg-narrow .rg-close { top:8px; right:8px; width:30px; height:30px; }
+                .rg-narrow .rg-hint { font-size:11px; padding:0 16px; text-align:center; }
                 @media (prefers-reduced-motion: reduce) {
                     .rg-bulb, .rg-floor-glow { animation-duration:.001ms !important; }
                 }
@@ -480,40 +559,49 @@ export default function RingGallery({
                 )}
             </div>
 
-            <div className="rg-stage" ref={stageRef}>
+            <div
+                className="rg-stage"
+                ref={stageRef}
+                style={{ perspective: effPerspective }}
+            >
                 <div className="rg-float" ref={floatRef}>
                     <div
                         className="rg-ring"
                         ref={ringRef}
-                        style={{ width: cardWidth, height: cardHeight }}
+                        style={{ width: effCardWidth, height: effCardHeight }}
                     >
                         <div className="rg-ring-spin" ref={ringSpinRef}>
                             {slots.map((i) => {
                                 const data = sourceItems[i % sourceItems.length]
                                 const baseAngle = angleStep * i
+                                const hoverHandlers = hoverCapable
+                                    ? {
+                                          onMouseEnter: (e: React.MouseEvent<HTMLDivElement>) => {
+                                              setPreview(data)
+                                              const slot = e.currentTarget
+                                              slot.style.transform = slotTransform(
+                                                  baseAngle,
+                                                  radius + HOVER_POP * scale
+                                              )
+                                          },
+                                          onMouseLeave: (e: React.MouseEvent<HTMLDivElement>) => {
+                                              setPreview(null)
+                                              const slot = e.currentTarget
+                                              slot.style.transform = slotTransform(baseAngle, radius)
+                                          },
+                                      }
+                                    : {}
                                 return (
                                     <div
                                         key={i}
                                         className="rg-slot"
                                         ref={(el) => (slotRefs.current[i] = el)}
                                         style={{
-                                            width: cardWidth,
-                                            height: cardHeight,
+                                            width: effCardWidth,
+                                            height: effCardHeight,
                                             transform: slotTransform(baseAngle, radius),
                                         }}
-                                        onMouseEnter={(e) => {
-                                            setPreview(data)
-                                            const slot = e.currentTarget
-                                            slot.style.transform = slotTransform(
-                                                baseAngle,
-                                                radius + HOVER_POP
-                                            )
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            setPreview(null)
-                                            const slot = e.currentTarget
-                                            slot.style.transform = slotTransform(baseAngle, radius)
-                                        }}
+                                        {...hoverHandlers}
                                         onClick={() => {
                                             if (wasDragRef.current) return
                                             openModal(data)
@@ -549,7 +637,10 @@ export default function RingGallery({
 
             <p className="rg-hint">Arrastrá para girar · clic en una tarjeta para ampliar</p>
 
-            <div className={"rg-modal" + (modalOpen ? " rg-open" : "")} hidden={!modalOpen}>
+            <div
+                className={"rg-modal" + (modalOpen ? " rg-open" : "")}
+                hidden={!modalOpen}
+            >
                 <div className="rg-modal-backdrop" onClick={closeModal} />
                 <div className="rg-marquee">
                     <div className="rg-bulbs rg-bulbs--top">
