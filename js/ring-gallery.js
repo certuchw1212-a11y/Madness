@@ -62,10 +62,11 @@ const ITEMS = [
   },
 ];
 
-const CARD_COUNT = 32; // how many card slots make up the full ring
-const CARD_WIDTH = 100; // must match --card-w in style.css — small + distant, like the reference
+const CARD_COUNT = 15; // how many card slots make up the full ring
+const CARD_WIDTH = 170; // must match --card-w in style.css — fewer cards leaves room to go bigger
 const OVERLAP = 0.78; // <1 packs cards closer together (denser fan look)
 const RADIUS_SCALE = 1; // extra multiplier on top of the touching-radius, for orbit depth
+const TANGENT_SPIN = 90; // deg — orients cards like books on a curved shelf, not petals facing out
 
 const BASE_TILT = 20; // deg
 const TILT_RANGE = 7; // deg of parallax tilt swing from cursor Y
@@ -132,8 +133,16 @@ function initRingGallery() {
     (CARD_WIDTH / 2 / Math.tan(Math.PI / CARD_COUNT)) * (1 / OVERLAP) * RADIUS_SCALE
   );
 
+  // Cards sit on the circle facing along it (spines out, like books on a
+  // curved shelf) rather than facing straight outward from the center —
+  // the extra local rotateY happens *before* translateZ places the card,
+  // so it re-orients the card in place without moving where it sits.
+  function slotTransform(baseAngle, z) {
+    return `rotateY(${baseAngle}deg) translateZ(${z}px) rotateY(${TANGENT_SPIN}deg)`;
+  }
+
   const fragment = document.createDocumentFragment();
-  const slots = []; // { el, baseAngle } — used each frame to drive depth-of-field blur
+  const slots = []; // { el, card, baseAngle } — used each frame to drive depth-of-field blur
 
   for (let i = 0; i < CARD_COUNT; i++) {
     const data = ITEMS[i % ITEMS.length];
@@ -141,8 +150,7 @@ function initRingGallery() {
 
     const slot = document.createElement("div");
     slot.className = "card-slot";
-    slot.style.transform = `rotateY(${baseAngle}deg) translateZ(${radius}px)`;
-    slots.push({ el: slot, baseAngle });
+    slot.style.transform = slotTransform(baseAngle, radius);
 
     const card = document.createElement("div");
     card.className = "card";
@@ -150,22 +158,39 @@ function initRingGallery() {
     card.setAttribute("role", "button");
     card.setAttribute("aria-label", `Ampliar: ${data.title}`);
 
-    const img = document.createElement("img");
-    img.src = data.image;
-    img.alt = data.title;
-    img.loading = "lazy";
+    // Two faces, not one: the tangential orientation means roughly half the
+    // ring shows a card's geometric "back" to the camera at any moment. A
+    // single-sided card would either mirror its image there or (with
+    // backface-visibility: hidden) leave a hole in the ring. The back face
+    // carries the same image pre-mirrored so it still reads right-side-up.
+    const front = document.createElement("div");
+    front.className = "card-face card-face--front";
+    const frontImg = document.createElement("img");
+    frontImg.src = data.image;
+    frontImg.alt = data.title;
+    frontImg.loading = "lazy";
+    front.appendChild(frontImg);
 
-    card.appendChild(img);
+    const back = document.createElement("div");
+    back.className = "card-face card-face--back";
+    const backImg = document.createElement("img");
+    backImg.src = data.image;
+    backImg.alt = "";
+    backImg.loading = "lazy";
+    back.appendChild(backImg);
+
+    card.appendChild(front);
+    card.appendChild(back);
     slot.appendChild(card);
 
     slot.addEventListener("mouseenter", () => {
       showPreview(data);
       lastInteraction = performance.now();
-      slot.style.transform = `rotateY(${baseAngle}deg) translateZ(${radius + HOVER_POP}px)`;
+      slot.style.transform = slotTransform(baseAngle, radius + HOVER_POP);
     });
     slot.addEventListener("mouseleave", () => {
       hidePreview();
-      slot.style.transform = `rotateY(${baseAngle}deg) translateZ(${radius}px)`;
+      slot.style.transform = slotTransform(baseAngle, radius);
     });
     slot.addEventListener("click", () => {
       if (wasDrag) return;
@@ -178,6 +203,7 @@ function initRingGallery() {
       }
     });
 
+    slots.push({ el: slot, card, baseAngle });
     fragment.appendChild(slot);
   }
 
@@ -324,7 +350,11 @@ function initRingGallery() {
     // this also keeps the *full* ring legible against the black background,
     // since even the darkest cards keep their rim light and soft silhouette.
     for (let i = 0; i < slots.length; i++) {
-      const { el, baseAngle } = slots[i];
+      // Filter goes on .card, not .card-slot: a filter forces transform-style
+      // to flat on its own children, which would otherwise flatten .card's
+      // rotation and break its backface-visibility (the tangential card
+      // orientation relies on hiding the back instead of showing it mirrored).
+      const { card, baseAngle } = slots[i];
       const facing = Math.cos((baseAngle + rotation) * DEG2RAD);
       // A small cluster of cards dead ahead (facing >= FOCUS_FACING) stays
       // perfectly sharp — like a lens focus plane — then blur ramps in for
@@ -334,7 +364,8 @@ function initRingGallery() {
         : (FOCUS_FACING - facing) / (FOCUS_FACING + 1);
       const blur = depth * MAX_DEPTH_BLUR;
       const brightness = 1 - depth * MAX_DEPTH_DIM;
-      el.style.filter = `blur(${blur.toFixed(2)}px) brightness(${brightness.toFixed(2)})`;
+      card.style.setProperty("--depth-blur", `${blur.toFixed(2)}px`);
+      card.style.setProperty("--depth-brightness", brightness.toFixed(2));
     }
 
     requestAnimationFrame(tick);

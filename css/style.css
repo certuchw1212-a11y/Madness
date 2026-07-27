@@ -1,7 +1,7 @@
 :root {
   --bg: #08080a;
-  --card-w: 100px;
-  --card-h: 135px;
+  --card-w: 170px;
+  --card-h: 230px;
   --text: #f2f0ea;
   --text-dim: #9a978f;
   --accent: #e0532c;
@@ -133,7 +133,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  perspective: 3000px;
+  perspective: 4200px;
   cursor: grab;
   touch-action: pan-y;
 }
@@ -169,12 +169,31 @@ body {
   width: var(--card-w);
   height: var(--card-h);
   transform-style: preserve-3d;
-  will-change: filter;
 }
 
 .card {
+  position: relative;
   width: 100%;
   height: 100%;
+  transform-style: preserve-3d;
+  cursor: pointer;
+  transition: transform 0.35s ease;
+  /* set from JS each frame; read by both faces below so the actual `filter`
+     property never lands on .card itself — filter forces transform-style:
+     flat on an element's children, which would flatten the two faces back
+     onto one plane and break their backface-visibility culling */
+  --depth-blur: 0px;
+  --depth-brightness: 1;
+}
+
+/* Two faces instead of one: the tangential card orientation means roughly
+   half the ring shows a card's geometric "back" to the camera at any given
+   moment. backface-visibility hides whichever face isn't turned toward the
+   viewer, so there's always exactly one face rendered — never a mirrored
+   image, never a gap in the ring. */
+.card-face {
+  position: absolute;
+  inset: 0;
   border-radius: 8px;
   overflow: hidden;
   background: #111;
@@ -182,11 +201,20 @@ body {
     0 18px 40px rgba(0, 0, 0, 0.55),
     0 0 0 1px rgba(255, 255, 255, 0.13),
     0 0 20px rgba(255, 255, 255, 0.05);
-  transition: transform 0.35s ease, filter 0.35s ease, box-shadow 0.35s ease;
-  cursor: pointer;
+  backface-visibility: hidden;
+  filter: blur(var(--depth-blur)) brightness(var(--depth-brightness));
+  transition: box-shadow 0.35s ease;
 }
 
-.card img {
+.card-face--front {
+  transform: rotateY(0deg);
+}
+
+.card-face--back {
+  transform: rotateY(180deg);
+}
+
+.card-face img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -199,6 +227,9 @@ body {
      not here — filter/transform on .card-slot forces transform-style:flat
      on its children, which would silently cancel a translateZ set here */
   transform: scale(1.06);
+}
+
+.card-slot:hover .card-face {
   box-shadow:
     0 30px 60px rgba(0, 0, 0, 0.65),
     0 0 0 1px rgba(255, 255, 255, 0.16),
