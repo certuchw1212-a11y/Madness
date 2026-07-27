@@ -2,8 +2,6 @@
   --bg: #08080a;
   --card-w: 140px;
   --card-h: 190px;
-  --radius: 480px;
-  --ring-tilt: 18deg;
   --text: #f2f0ea;
   --text-dim: #9a978f;
   --accent: #e0532c;
@@ -135,7 +133,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  perspective: 1800px;
+  perspective: 1200px;
   cursor: grab;
   touch-action: pan-y;
 }
@@ -145,6 +143,7 @@ body {
 }
 
 .float {
+  transform-style: preserve-3d;
   will-change: transform;
 }
 
