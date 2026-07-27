@@ -12,6 +12,15 @@ import { addPropertyControls, ControlType } from "framer"
  *
  * All content (images, tags, titles, descriptions) is editable from the
  * Framer property panel via the `items` array below.
+ *
+ * `cardContent` is a separate, parallel array of component slots
+ * ("Contenido personalizado" in the panel): position N in `cardContent`
+ * overrides the modal body for position N in `items` with any Framer
+ * component dropped there (video, custom layouts, etc). It has to live
+ * in its own top-level Array control — Framer does not support a
+ * ComponentInstance control nested inside the `items` Array-of-Object
+ * schema, so it can't be a field alongside tag/title/description on the
+ * same item.
  */
 
 // ---------------------------------------------------------------------
@@ -28,6 +37,7 @@ interface RingItem {
 
 interface RingGalleryProps {
     items?: RingItem[]
+    cardContent?: React.ReactNode[]
     cardCount: number
     cardWidth: number
     cardHeight: number
@@ -97,6 +107,7 @@ const DEFAULT_ITEMS: RingItem[] = [
 
 export default function RingGallery({
     items,
+    cardContent,
     cardCount = 20,
     cardWidth = 185,
     cardHeight = 250,
@@ -575,7 +586,9 @@ export default function RingGallery({
                     >
                         <div className="rg-ring-spin" ref={ringSpinRef}>
                             {slots.map((i) => {
-                                const data = sourceItems[i % sourceItems.length]
+                                const idx = i % sourceItems.length
+                                const data = sourceItems[idx]
+                                const customContent = cardContent?.[idx]
                                 const baseAngle = angleStep * i
                                 const hoverHandlers = hoverCapable
                                     ? {
@@ -607,7 +620,11 @@ export default function RingGallery({
                                         {...hoverHandlers}
                                         onClick={() => {
                                             if (wasDragRef.current) return
-                                            openModal(data)
+                                            openModal(
+                                                customContent
+                                                    ? { ...data, content: customContent }
+                                                    : data
+                                            )
                                         }}
                                     >
                                         <div
@@ -619,7 +636,11 @@ export default function RingGallery({
                                             onKeyDown={(e) => {
                                                 if (e.key === "Enter" || e.key === " ") {
                                                     e.preventDefault()
-                                                    openModal(data)
+                                                    openModal(
+                                                        customContent
+                                                            ? { ...data, content: customContent }
+                                                            : data
+                                                    )
                                                 }
                                             }}
                                         >
@@ -749,13 +770,14 @@ addPropertyControls(RingGallery, {
                     defaultValue: "",
                     displayTextArea: true,
                 },
-                content: {
-                    type: ControlType.ComponentInstance,
-                    title: "Contenido personalizado",
-                },
             },
         },
         defaultValue: DEFAULT_ITEMS,
+    },
+    cardContent: {
+        type: ControlType.Array,
+        title: "Contenido personalizado",
+        control: { type: ControlType.ComponentInstance },
     },
     cardCount: {
         type: ControlType.Number,
