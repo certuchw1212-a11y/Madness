@@ -23,6 +23,7 @@ interface RingItem {
     tag: string
     title: string
     description: string
+    content?: React.ReactNode
 }
 
 interface RingGalleryProps {
@@ -509,6 +510,8 @@ export default function RingGallery({
                 .rg-title { margin:0; font-family: ui-serif, Georgia, 'Times New Roman', serif; font-size:26px;
                     font-weight:500; line-height:1.25; text-wrap:balance; }
                 .rg-desc { margin:4px 0 0; font-size:14.5px; line-height:1.6; max-width:42ch; opacity:.65; }
+                .rg-panel--custom { display:block; max-height:90vh; }
+                .rg-panel--custom > * { width:100%; }
                 .rg-close { position:absolute; top:14px; right:14px; width:34px; height:34px; display:flex;
                     align-items:center; justify-content:center; border-radius:50%; border:1px solid rgba(255,255,255,.09);
                     background:rgba(0,0,0,.35); color:inherit; font-size:18px; line-height:1; cursor:pointer; }
@@ -675,17 +678,29 @@ export default function RingGallery({
                         <span className="rg-rivet rg-rivet--br" />
 
                         <div
-                            className="rg-panel"
+                            className={
+                                "rg-panel" +
+                                (modalItem?.content ? " rg-panel--custom" : "")
+                            }
                             role="dialog"
                             aria-modal="true"
                             aria-label={modalItem?.title}
                         >
-                            <img src={modalItem?.image?.src} alt={modalItem?.title || ""} />
-                            <div className="rg-panel-body">
-                                <p className="rg-eyebrow">{modalItem?.tag}</p>
-                                <h2 className="rg-title">{modalItem?.title}</h2>
-                                <p className="rg-desc">{modalItem?.description}</p>
-                            </div>
+                            {modalItem?.content ? (
+                                modalItem.content
+                            ) : (
+                                <>
+                                    <img
+                                        src={modalItem?.image?.src}
+                                        alt={modalItem?.title || ""}
+                                    />
+                                    <div className="rg-panel-body">
+                                        <p className="rg-eyebrow">{modalItem?.tag}</p>
+                                        <h2 className="rg-title">{modalItem?.title}</h2>
+                                        <p className="rg-desc">{modalItem?.description}</p>
+                                    </div>
+                                </>
+                            )}
                             <button
                                 className="rg-close"
                                 ref={modalCloseRef}
@@ -733,6 +748,10 @@ addPropertyControls(RingGallery, {
                     title: "Descripción",
                     defaultValue: "",
                     displayTextArea: true,
+                },
+                content: {
+                    type: ControlType.ComponentInstance,
+                    title: "Contenido personalizado",
                 },
             },
         },
