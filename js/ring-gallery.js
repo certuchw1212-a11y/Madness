@@ -62,12 +62,12 @@ const ITEMS = [
   },
 ];
 
-const CARD_COUNT = 24; // how many card slots make up the full ring — fewer cards means a smaller radius
-const CARD_WIDTH = 140; // must match --card-w in style.css
+const CARD_COUNT = 32; // how many card slots make up the full ring
+const CARD_WIDTH = 100; // must match --card-w in style.css — small + distant, like the reference
 const OVERLAP = 0.78; // <1 packs cards closer together (denser fan look)
-const RADIUS_SCALE = 1.3; // extra multiplier on top of the touching-radius, for orbit depth
+const RADIUS_SCALE = 1; // extra multiplier on top of the touching-radius, for orbit depth
 
-const BASE_TILT = 25; // deg — tuned so the orbit's height/width ratio lands at ~35-40%
+const BASE_TILT = 20; // deg
 const TILT_RANGE = 7; // deg of parallax tilt swing from cursor Y
 const PARALLAX_X = 16; // px of horizontal drift from cursor X
 const BOB_AMPLITUDE = 9; // px
@@ -195,7 +195,7 @@ function initRingGallery() {
   }
 
   // ---- Drag-to-rotate + inertia + idle auto-rotate ----
-  let rotation = 0;
+  let rotation = angleStep / 2; // no card sits perfectly dead-center by default
   let dragging = false;
   let wasDrag = false;
   let dragStartX = 0;

@@ -1,7 +1,7 @@
 :root {
   --bg: #08080a;
-  --card-w: 140px;
-  --card-h: 190px;
+  --card-w: 100px;
+  --card-h: 135px;
   --text: #f2f0ea;
   --text-dim: #9a978f;
   --accent: #e0532c;
@@ -133,7 +133,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  perspective: 1200px;
+  perspective: 3000px;
   cursor: grab;
   touch-action: pan-y;
 }
