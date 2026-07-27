@@ -13,14 +13,19 @@ import { addPropertyControls, ControlType } from "framer"
  * All content (images, tags, titles, descriptions) is editable from the
  * Framer property panel via the `items` array below.
  *
- * `cardContent` is a separate, parallel array of component slots
- * ("Contenido personalizado" in the panel): position N in `cardContent`
- * overrides the modal body for position N in `items` with any Framer
- * component dropped there (video, custom layouts, etc). It has to live
- * in its own top-level Array control — Framer does not support a
- * ComponentInstance control nested inside the `items` Array-of-Object
- * schema, so it can't be a field alongside tag/title/description on the
- * same item.
+ * `cardContent` is a separate, top-level array of component slots
+ * ("Contenido personalizado" in the panel) — it has to live on its own
+ * because Framer does not support a ComponentInstance control nested
+ * inside the `items` Array-of-Object schema, so it can't be a field
+ * alongside tag/title/description on the same item.
+ *
+ * Each item in `items` links to a slot in `cardContent` explicitly via
+ * its `contentIndex` field ("Índice de contenido personalizado" in the
+ * panel) rather than by matching list position — that way any subset of
+ * cards can carry custom content, in any order, without needing empty
+ * placeholder slots for the cards that don't. `contentIndex: -1` (the
+ * default) means "no custom content, use the normal image/tag/title/
+ * description layout".
  */
 
 // ---------------------------------------------------------------------
@@ -32,6 +37,7 @@ interface RingItem {
     tag: string
     title: string
     description: string
+    contentIndex?: number
     content?: React.ReactNode
 }
 
@@ -588,7 +594,11 @@ export default function RingGallery({
                             {slots.map((i) => {
                                 const idx = i % sourceItems.length
                                 const data = sourceItems[idx]
-                                const customContent = cardContent?.[idx]
+                                const customContent =
+                                    typeof data.contentIndex === "number" &&
+                                    data.contentIndex >= 0
+                                        ? cardContent?.[data.contentIndex]
+                                        : undefined
                                 const baseAngle = angleStep * i
                                 const hoverHandlers = hoverCapable
                                     ? {
@@ -769,6 +779,12 @@ addPropertyControls(RingGallery, {
                     title: "Descripción",
                     defaultValue: "",
                     displayTextArea: true,
+                },
+                contentIndex: {
+                    type: ControlType.Number,
+                    title: "Índice de contenido personalizado",
+                    defaultValue: -1,
+                    step: 1,
                 },
             },
         },
