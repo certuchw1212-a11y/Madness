@@ -62,10 +62,10 @@ const ITEMS = [
   },
 ];
 
-const CARD_COUNT = 15; // how many card slots make up the full ring
+const CARD_COUNT = 20; // how many card slots make up the full ring
 const CARD_WIDTH = 185; // must match --card-w in style.css
 const OVERLAP = 0.78; // <1 packs cards closer together (denser fan look)
-const RADIUS_SCALE = 0.85; // extra multiplier on top of the touching-radius, for orbit depth
+const RADIUS_SCALE = 0.6; // extra multiplier on top of the touching-radius, for orbit depth
 const TANGENT_SPIN = 90; // deg — orients cards like books on a curved shelf, not petals facing out
 
 const BASE_TILT = 20; // deg
