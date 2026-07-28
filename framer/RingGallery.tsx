@@ -8,7 +8,9 @@ import { addPropertyControls, ControlType } from "framer"
  * A dense ring of cards oriented tangentially (like books on a curved
  * shelf), viewed with a tilted perspective camera so the ring reads as a
  * real 3D orbit. Drag to spin it, hover to preview, click a card to open
- * a cinema-marquee detail panel.
+ * a detail panel: a plain window over a blurred backdrop, with no built-in
+ * frame — build your own marquee (or anything else) inside it via
+ * `cardContent`/`contentIndex` below.
  *
  * All content (images, tags, titles, descriptions) is editable from the
  * Framer property panel via the `items` array below.
@@ -78,9 +80,6 @@ const FOCUS_FACING = 0.75 // cards within ~41deg of dead-center stay perfectly s
 const DEG2RAD = Math.PI / 180
 const HOVER_POP = 34 // px a hovered card pushes toward the camera
 const PERSPECTIVE = 4200 // px
-
-const BULB_ROW_COUNT = 11
-const BULB_COL_COUNT = 6
 
 // ---------------------------------------------------------------------
 // Fallback placeholder image (used only when a slot has no `image` set)
@@ -190,26 +189,6 @@ export default function RingGallery({
     const effCardWidth = cardWidth * scale
     const effCardHeight = cardHeight * scale
     const effPerspective = PERSPECTIVE * scale
-
-    // Denser bulb rows look cramped once the marquee itself has shrunk well
-    // below its designed size, so thin them out on narrow containers.
-    const bulbRowCount = isNarrow ? 7 : BULB_ROW_COUNT
-    const bulbColCount = isNarrow ? 4 : BULB_COL_COUNT
-
-    // Stagger each bulb's flicker so the sign reads as individually-wired
-    // bulbs rather than one uniform pulse.
-    const bulbDelays = useMemo(() => {
-        const make = (n: number) =>
-            Array.from({ length: n }, () => (Math.random() * -3).toFixed(2) + "s")
-        return {
-            top: make(bulbRowCount),
-            bottom: make(bulbRowCount),
-            left: make(bulbColCount),
-            right: make(bulbColCount),
-            corners: make(4),
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [bulbRowCount, bulbColCount])
 
     const angleStep = 360 / cardCount
     const radius = Math.round(
@@ -483,51 +462,21 @@ export default function RingGallery({
                 .rg-slot:hover .rg-face { box-shadow: 0 30px 60px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.16), 0 0 40px rgba(255,255,255,.08); }
                 .rg-modal { position:absolute; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; }
                 .rg-modal[hidden] { display:none; }
-                .rg-modal-backdrop { position:absolute; inset:0; background:rgba(4,4,5,.78); backdrop-filter:blur(6px);
-                    opacity:0; transition:opacity .3s ease; }
+                .rg-modal-backdrop { position:absolute; inset:0; background:rgba(4,4,5,.55); backdrop-filter:blur(14px);
+                    -webkit-backdrop-filter:blur(14px); opacity:0; transition:opacity .3s ease; }
                 .rg-modal.rg-open .rg-modal-backdrop { opacity:1; }
-                .rg-marquee { position:relative; width:min(820px,92%); max-height:90%; padding:32px 28px;
-                    background: radial-gradient(ellipse at 50% 0%, rgba(255,180,90,.12), transparent 55%),
-                        linear-gradient(160deg, rgba(255,255,255,.07), transparent 22%),
-                        repeating-linear-gradient(128deg, rgba(255,255,255,.025) 0 2px, transparent 2px 6px),
-                        linear-gradient(155deg, #3c2a15, #1c130a 55%, #0d0906);
-                    border-radius:12px;
-                    box-shadow: 0 50px 120px rgba(0,0,0,.7), inset 0 2px 2px rgba(255,255,255,.1),
-                        inset 0 -3px 6px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,200,130,.12);
-                    opacity:0; transform:scale(0.96) translateY(10px); transition:opacity .3s ease, transform .3s ease; }
-                .rg-modal.rg-open .rg-marquee { opacity:1; transform:scale(1) translateY(0); }
-                .rg-bulbs { position:absolute; display:flex; pointer-events:none; }
-                .rg-bulbs--top, .rg-bulbs--bottom { left:30px; right:30px; justify-content:space-between; }
-                .rg-bulbs--top { top:11px; } .rg-bulbs--bottom { bottom:11px; }
-                .rg-bulbs--left, .rg-bulbs--right { top:32px; bottom:32px; flex-direction:column; justify-content:space-between; }
-                .rg-bulbs--left { left:11px; } .rg-bulbs--right { right:11px; }
-                .rg-corner { position:absolute; z-index:1; }
-                .rg-corner--tl { top:11px; left:11px; } .rg-corner--tr { top:11px; right:11px; }
-                .rg-corner--bl { bottom:11px; left:11px; } .rg-corner--br { bottom:11px; right:11px; }
-                .rg-bulb { display:block; width:11px; height:11px; border-radius:50%;
-                    background: radial-gradient(circle at 35% 28%, #fffdf2 0%, #ffe19a 22%, #ffb64a 48%, #d9791c 72%, #5c3410 100%);
-                    box-shadow: inset -1px -1px 2px rgba(0,0,0,.55), inset 1px 1px 1px rgba(255,255,255,.55),
-                        0 0 6px 2px rgba(255,180,70,.9), 0 0 18px 7px rgba(255,130,20,.4);
-                    animation: rg-bulb-flicker 2.6s ease-in-out infinite; }
-                @keyframes rg-bulb-flicker { 0%,100% { opacity:1; } 50% { opacity:.82; } }
-                .rg-bezel { position:relative; padding:9px; border-radius:8px;
-                    background: linear-gradient(155deg, #4d3419 0%, #2a1c0f 45%, #17100a 100%);
-                    box-shadow: inset 0 2px 3px rgba(255,255,255,.18), inset 0 -2px 4px rgba(0,0,0,.65); }
-                .rg-rivet { position:absolute; width:6px; height:6px; border-radius:50%;
-                    background: radial-gradient(circle at 35% 30%, #f0d9a8, #96702c 55%, #3a2510 100%);
-                    box-shadow: 0 1px 1px rgba(0,0,0,.6), inset 0 0 1px rgba(255,255,255,.5); }
-                .rg-rivet--tl { top:4px; left:4px; } .rg-rivet--tr { top:4px; right:4px; }
-                .rg-rivet--bl { bottom:4px; left:4px; } .rg-rivet--br { bottom:4px; right:4px; }
-                .rg-panel { position:relative; width:100%; max-height:calc(90vh - 86px); overflow:auto;
+                .rg-panel { position:relative; width:min(820px,92%); max-height:90vh; overflow:auto;
                     display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); background:#0c0c0e;
-                    border-radius:5px; box-shadow: inset 0 0 40px rgba(0,0,0,.5); }
+                    border-radius:14px; box-shadow: 0 50px 120px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.08);
+                    opacity:0; transform:scale(0.96) translateY(10px); transition:opacity .3s ease, transform .3s ease; }
+                .rg-modal.rg-open .rg-panel { opacity:1; transform:scale(1) translateY(0); }
                 .rg-panel img { width:100%; height:100%; min-height:260px; object-fit:cover; display:block; }
                 .rg-panel-body { padding:32px 30px; display:flex; flex-direction:column; justify-content:center; gap:10px; }
                 .rg-eyebrow { margin:0; font-size:11px; font-weight:700; letter-spacing:.14em; color:${accentColor}; }
                 .rg-title { margin:0; font-family: ui-serif, Georgia, 'Times New Roman', serif; font-size:26px;
                     font-weight:500; line-height:1.25; text-wrap:balance; }
                 .rg-desc { margin:4px 0 0; font-size:14.5px; line-height:1.6; max-width:42ch; opacity:.65; }
-                .rg-panel--custom { display:block; max-height:90vh; }
+                .rg-panel--custom { display:block; max-height:90vh; overflow:auto; }
                 .rg-panel--custom > * { width:100%; }
                 .rg-close { position:absolute; top:14px; right:14px; width:34px; height:34px; display:flex;
                     align-items:center; justify-content:center; border-radius:50%; border:1px solid rgba(255,255,255,.09);
@@ -544,20 +493,15 @@ export default function RingGallery({
                     .rg-panel { grid-template-columns:1fr; }
                     .rg-panel img { min-height:180px; }
                 }
-                .rg-narrow .rg-panel { grid-template-columns:1fr; }
+                .rg-narrow .rg-panel { grid-template-columns:1fr; width:94%; max-height:94vh; border-radius:10px; }
                 .rg-narrow .rg-panel img { min-height:38vh; }
                 .rg-narrow .rg-panel-body { padding:20px 18px; gap:6px; }
                 .rg-narrow .rg-title { font-size:20px; }
                 .rg-narrow .rg-desc { font-size:13.5px; }
-                .rg-narrow .rg-marquee { padding:22px 16px; border-radius:10px; width:94%; max-height:94%; }
-                .rg-narrow .rg-bezel { padding:6px; }
-                .rg-narrow .rg-bulbs--top, .rg-narrow .rg-bulbs--bottom { left:18px; right:18px; }
-                .rg-narrow .rg-bulbs--left, .rg-narrow .rg-bulbs--right { top:20px; bottom:20px; }
-                .rg-narrow .rg-bulb { width:8px; height:8px; }
                 .rg-narrow .rg-close { top:8px; right:8px; width:30px; height:30px; }
                 .rg-narrow .rg-hint { font-size:11px; padding:0 16px; text-align:center; }
                 @media (prefers-reduced-motion: reduce) {
-                    .rg-bulb, .rg-floor-glow { animation-duration:.001ms !important; }
+                    .rg-floor-glow { animation-duration:.001ms !important; }
                 }
             `}</style>
 
@@ -676,72 +620,37 @@ export default function RingGallery({
                 hidden={!modalOpen}
             >
                 <div className="rg-modal-backdrop" onClick={closeModal} />
-                <div className="rg-marquee">
-                    <div className="rg-bulbs rg-bulbs--top">
-                        {bulbDelays.top.map((d, i) => (
-                            <span className="rg-bulb" key={i} style={{ animationDelay: d }} />
-                        ))}
-                    </div>
-                    <div className="rg-bulbs rg-bulbs--bottom">
-                        {bulbDelays.bottom.map((d, i) => (
-                            <span className="rg-bulb" key={i} style={{ animationDelay: d }} />
-                        ))}
-                    </div>
-                    <div className="rg-bulbs rg-bulbs--left">
-                        {bulbDelays.left.map((d, i) => (
-                            <span className="rg-bulb" key={i} style={{ animationDelay: d }} />
-                        ))}
-                    </div>
-                    <div className="rg-bulbs rg-bulbs--right">
-                        {bulbDelays.right.map((d, i) => (
-                            <span className="rg-bulb" key={i} style={{ animationDelay: d }} />
-                        ))}
-                    </div>
-                    <span className="rg-bulb rg-corner rg-corner--tl" style={{ animationDelay: bulbDelays.corners[0] }} />
-                    <span className="rg-bulb rg-corner rg-corner--tr" style={{ animationDelay: bulbDelays.corners[1] }} />
-                    <span className="rg-bulb rg-corner rg-corner--bl" style={{ animationDelay: bulbDelays.corners[2] }} />
-                    <span className="rg-bulb rg-corner rg-corner--br" style={{ animationDelay: bulbDelays.corners[3] }} />
-
-                    <div className="rg-bezel">
-                        <span className="rg-rivet rg-rivet--tl" />
-                        <span className="rg-rivet rg-rivet--tr" />
-                        <span className="rg-rivet rg-rivet--bl" />
-                        <span className="rg-rivet rg-rivet--br" />
-
-                        <div
-                            className={
-                                "rg-panel" +
-                                (modalItem?.content ? " rg-panel--custom" : "")
-                            }
-                            role="dialog"
-                            aria-modal="true"
-                            aria-label={modalItem?.title}
-                        >
-                            {modalItem?.content ? (
-                                modalItem.content
-                            ) : (
-                                <>
-                                    <img
-                                        src={modalItem?.image?.src}
-                                        alt={modalItem?.title || ""}
-                                    />
-                                    <div className="rg-panel-body">
-                                        <p className="rg-eyebrow">{modalItem?.tag}</p>
-                                        <h2 className="rg-title">{modalItem?.title}</h2>
-                                        <p className="rg-desc">{modalItem?.description}</p>
-                                    </div>
-                                </>
-                            )}
-                            <button
-                                className="rg-close"
-                                ref={modalCloseRef}
-                                aria-label="Cerrar"
-                                onClick={closeModal}
-                            >
-                                &times;
-                            </button>
-                        </div>
-                    </div>
+                <div
+                    className={
+                        "rg-panel" + (modalItem?.content ? " rg-panel--custom" : "")
+                    }
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label={modalItem?.title}
+                >
+                    {modalItem?.content ? (
+                        modalItem.content
+                    ) : (
+                        <>
+                            <img
+                                src={modalItem?.image?.src}
+                                alt={modalItem?.title || ""}
+                            />
+                            <div className="rg-panel-body">
+                                <p className="rg-eyebrow">{modalItem?.tag}</p>
+                                <h2 className="rg-title">{modalItem?.title}</h2>
+                                <p className="rg-desc">{modalItem?.description}</p>
+                            </div>
+                        </>
+                    )}
+                    <button
+                        className="rg-close"
+                        ref={modalCloseRef}
+                        aria-label="Cerrar"
+                        onClick={closeModal}
+                    >
+                        &times;
+                    </button>
                 </div>
             </div>
         </div>
