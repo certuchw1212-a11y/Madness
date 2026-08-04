@@ -1,0 +1,200 @@
+/* ==========================================================================
+   Interactive connector map — black bg, gray outline, glow-on-hover lines
+   ========================================================================== */
+
+:root {
+  --map-bg: #05070c;
+  --continent-stroke: rgba(150, 158, 172, 0.55);
+  --continent-fill: rgba(150, 158, 172, 0.06);
+  --line-idle: rgba(150, 158, 172, 0.35);
+  --line-active: #f0c46a;
+  --node-idle: rgba(200, 206, 216, 0.85);
+  --node-active: #f0c46a;
+  --glow: #f0c46a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--map-bg);
+  background-image:
+    radial-gradient(ellipse at 50% 30%, rgba(60, 70, 90, 0.18), transparent 60%);
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  color: #cfd4dd;
+  padding: 32px 16px;
+}
+
+.map-wrap {
+  width: 100%;
+  max-width: 1100px;
+}
+
+.map-header {
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.map-header h1 {
+  margin: 0 0 6px;
+  font-size: 1.4rem;
+  letter-spacing: 0.04em;
+  color: #f2f2f2;
+  font-weight: 600;
+}
+
+.map-header p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #8a92a3;
+}
+
+.map-frame {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  background: radial-gradient(ellipse at center, #0a0d15 0%, #050609 75%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+}
+
+svg#world-map {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Continents: flat outline, subtle transparent fill — no 3D */
+.continent {
+  fill: var(--continent-fill);
+  stroke: var(--continent-stroke);
+  stroke-width: 1.1;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Invisible fat hit-area so hovering the thin line is easy */
+.connector-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 16;
+  cursor: pointer;
+  pointer-events: stroke;
+}
+
+.connector-line {
+  fill: none;
+  stroke: var(--line-idle);
+  stroke-width: 1.3;
+  stroke-linecap: round;
+  transition: stroke 0.25s ease, stroke-width 0.25s ease, filter 0.25s ease;
+}
+
+.connector-group.is-active .connector-line {
+  stroke: var(--line-active);
+  stroke-width: 2.2;
+  filter: drop-shadow(0 0 6px var(--glow)) drop-shadow(0 0 14px rgba(240, 196, 106, 0.55));
+}
+
+/* traveling light pulse along the active line */
+.connector-group.is-active .connector-pulse {
+  opacity: 1;
+}
+
+.connector-pulse {
+  fill: none;
+  stroke: #fff6df;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-dasharray: 6 220;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  animation: dash-flow 2.4s linear infinite;
+  filter: drop-shadow(0 0 5px var(--glow));
+}
+
+@keyframes dash-flow {
+  to {
+    stroke-dashoffset: -460;
+  }
+}
+
+/* Nodes */
+.node {
+  cursor: pointer;
+}
+
+.node-halo {
+  fill: none;
+  stroke: var(--node-idle);
+  stroke-width: 1;
+  opacity: 0.35;
+  transform-origin: center;
+  transition: stroke 0.25s ease, opacity 0.25s ease;
+}
+
+.node-dot {
+  fill: var(--node-idle);
+  stroke: rgba(5, 7, 12, 0.9);
+  stroke-width: 1;
+  transition: fill 0.25s ease, filter 0.25s ease, r 0.25s ease;
+}
+
+.node-label {
+  fill: #b7bdc9;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  pointer-events: none;
+  transition: fill 0.25s ease;
+}
+
+.node.is-active .node-dot,
+.node:hover .node-dot,
+.node:focus-visible .node-dot {
+  fill: var(--node-active);
+  filter: drop-shadow(0 0 6px var(--glow)) drop-shadow(0 0 12px rgba(240, 196, 106, 0.6));
+}
+
+.node.is-active .node-halo,
+.node:hover .node-halo,
+.node:focus-visible .node-halo {
+  stroke: var(--node-active);
+  opacity: 0.9;
+  animation: halo-pulse 1.6s ease-out infinite;
+}
+
+.node.is-active .node-label,
+.node:hover .node-label,
+.node:focus-visible .node-label {
+  fill: #f5e3ba;
+}
+
+@keyframes halo-pulse {
+  0% {
+    r: 6;
+    opacity: 0.8;
+  }
+  100% {
+    r: 16;
+    opacity: 0;
+  }
+}
+
+.connector-hit:focus-visible + .connector-line {
+  stroke: var(--line-active);
+  stroke-width: 2.2;
+  filter: drop-shadow(0 0 6px var(--glow));
+}
+
+.map-legend {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 0.78rem;
+  color: #6d7484;
+  letter-spacing: 0.02em;
+}
